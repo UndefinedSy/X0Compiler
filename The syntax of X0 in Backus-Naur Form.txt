@@ -1,0 +1,27 @@
+program = "main" "{" declaration_list statement_list "}".
+declaration_list = [declaration_list declaration_stat | declaration_stat].
+declaration_stat = var_declaration. // | func_declaration
+var_declaration = type ID ";" | type ID "[" NUM "]" ";" | type ID "[" NUM "]" "[" NUM "]" ";".
+type = "int" | "char" | "bool". //float
+// func_declaration = type ID "(" params ")" compound_stat.
+// params = param_list | void.
+// param_list = param_list "," var_declaration | var_declaration.
+compound_stat = "{" statement_list "}".
+statement_list = statement_list statement | ε.
+statement = expression_stat | compound_stat | select_stat | iteration_stat | read_stat | write_stat.
+expression_stat = expression ";" | ";". 
+expression = var "=" expression | simple_expr.
+var = ID | ID "[" expression "]" | ID "[" expression "]" "[" expression "]".
+select_stat = "if" "(" expression ")" statement ["else" statement] // make the else part work as the sub struct can solve the ambiguity problem. 
+            | "switch" "(" expression ")" statement.  
+iteration_stat = "for" "(" {expression} ";" {expression} ";" {expression} ";" ")" statement
+            |    "while" "(" expression ")" statement
+            |    "do" statement "while" "(" expression ")"
+write_stat = "write" expression ";" .
+read_stat = "read" var ";".
+simple_expr = additive_expr | additive_expr rel_op additive_expr.
+rel_op = <= | < | > | >= | == | != | && | ||    // how to solve monocular operator like "!" symbol
+additive_expr = term {("+"|"-") term }.
+term = factor {("*" | "/" | "%") factor } | postfix_expression.
+postfix_expression = factor ("+""+" | "-""-") // how to solve (i++) * a
+factor = "(" expression ")"| var | NUM.
