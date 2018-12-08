@@ -16,13 +16,14 @@ int yywrap(void);
 [ \t]	{;}
 [\n]	{line++;}
 
-"bool"  {return BOOLSYM}
+"bool"  {return BOOLSYM;}
 "break"	{return BREAKSYM;}
 "case"	{return CASESYM;}
 "char"  {return CHARSYM;}
 "const"	{return CONSTSYM;}
 "continue"	{return CONTINUESYM;}
 "do"	{return DOSYM;}
+"default"   {return DEFAULTSYM;} 
 "else"	{return ELSESYM;}
 "for"	{return FORSYM;}
 "if"	{return IFSYM;}
@@ -34,11 +35,19 @@ int yywrap(void);
 "string"    {return STRINGSYM;}
 "then"	{return THENSYM;}
 "unsigned"  {return UNSIGNEDSYM;}
-"until" {return UNTILSYM}
+"until" {return UNTILSYM;}
 "while"	{return WHILESYM;}
 "write"	{return WRITESYM;}
 "return"	{return RETURNSYM;}
 
+"true"  {
+    yylval.boolean = 1;
+    return BOOL;
+}
+"false" {
+    yylval.boolean = 0;
+    return BOOL;
+}
 
 [A-Za-z_]([A-Za-z]|[0-9]|_)*	{
     yylval.ident=(char *)malloc(strlen(yytext)+1);
@@ -52,12 +61,12 @@ int yywrap(void);
 }
 
 ["].*["]    {
-    yylval.chars = (char*)malloc(strlen(yytext) - 1);
+    yylval.string_chars = (char*)malloc(strlen(yytext) - 1);
     int i, j = 0;
     for (i = 1; i < strlen(yytext) - 1; ++i) {
-        yylval.chars[j++] = yytext[i];
+        yylval.string_chars[j++] = yytext[i];
     }
-    yylval.text[strlen(yytext) - 1] = '\0';
+    yylval.string_chars[strlen(yytext) - 1] = '\0';
     return STRING;
 }
 
@@ -92,6 +101,7 @@ int yywrap(void);
 "^^"	{return	XOR;}
 ","	    {return COMMA;}
 "."	    {return PERIOD;}
+":"     {return COLON;}
 ";"	    {return	SEMICOLON;}
 .	    {yyerror("Unknown character!");}
 

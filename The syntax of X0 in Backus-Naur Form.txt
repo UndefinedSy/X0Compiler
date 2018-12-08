@@ -1,27 +1,34 @@
 program = "main" "{" declaration_list statement_list "}".
-declaration_list = [declaration_list declaration_stat | declaration_stat].
-declaration_stat = var_declaration. // | func_declaration
-var_declaration = type ID ";" | type ID "[" NUM "]" ";" | type ID "[" NUM "]" "[" NUM "]" ";".
-type = "int" | "char" | "bool". //float
-// func_declaration = type ID "(" params ")" compound_stat.
-// params = param_list | void.
-// param_list = param_list "," var_declaration | var_declaration.
+declaration_list = declaration_list declaration_stat | declaration_stat | ε.
+declaration_stat = var_declaration | const_declaration.
+var_declaration = type ident_list ";".
+const_declaration = "const" type ident_list ";".
+ident_list = ident_list "," ident_def | ident_def.
+ident_def = IDENT | IDENT "=" simple_expr.
+type = "int" | "char" | "bool" | "string".
 compound_stat = "{" statement_list "}".
-statement_list = statement_list statement | ε.
-statement = expression_stat | compound_stat | select_stat | iteration_stat | read_stat | write_stat.
-expression_stat = expression ";" | ";". 
-expression = var "=" expression | simple_expr.
-var = ID | ID "[" expression "]" | ID "[" expression "]" "[" expression "]".
-select_stat = "if" "(" expression ")" statement ["else" statement] // make the else part work as the sub struct can solve the ambiguity problem. 
-            | "switch" "(" expression ")" statement.  
-iteration_stat = "for" "(" {expression} ";" {expression} ";" {expression} ";" ")" statement
-            |    "while" "(" expression ")" statement
-            |    "do" statement "while" "(" expression ")"
-write_stat = "write" expression ";" .
-read_stat = "read" var ";".
-simple_expr = additive_expr | additive_expr rel_op additive_expr.
-rel_op = <= | < | > | >= | == | != | && | ||    // how to solve monocular operator like "!" symbol
-additive_expr = term {("+"|"-") term }.
-term = factor {("*" | "/" | "%") factor } | postfix_expression.
-postfix_expression = factor ("+""+" | "-""-") // how to solve (i++) * a
-factor = "(" expression ")"| var | NUM.
+statement_list = statement_list statement | statement | ε.
+statement = expression_stat | compound_stat | select_stat | iteration_stat | read_stat | write_stat | ε.
+expression_stat = expression_stat expression ";" | expression ";" | ε. 
+expression = var "=" expression | simple_expr | ε.
+var = ID.
+select_stat = if_stat | switch_stat.
+if_stat = "if" "(" expression ")" statement else_stat. 
+else_stat = "else" statement | ε.
+switch_stat = "switch" "(" expression ")" "{" case_list default_stat "}".
+case_list = case_list case_stat | case_stat | ε.
+case_stat = "case" expression ":" statement.
+default_stat = "default" ":" statement | ε.
+iteration_stat = for_stat | while_stat | do_while_stat.
+for_stat = "for" "(" expression ";" expression ";" expression ")" statement.
+while_stat = "while" "(" expression ")" statement.
+do_while_stat = "do" statement "while" "(" expression ")" ";".
+read_stat = "read" "(" read_list ")" ";".
+read_list = read_list "," read_var | read_var.
+read_var = var.
+write_stat = "write" "(" write_list ")" ";" .
+write_list = write_list "," simple_expr | simple_expr.
+simple_expr = factor | "-" simple_expr | unary_opr simple_expr | simple_expr unary_opr | simple_expr opr simple_expr | "!" simple_expr | "(" simple_expr ")".
+factor = NUMBER | BOOL | STRING | CHAR | var.
+unary_opr = "++" | "--".
+opr = "+" | "-" | "*" | "/" | "%" | "&&" | "||" | "^" | "<" | "<=" | ">" | ">=" | "==" | "!=".
