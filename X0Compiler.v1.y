@@ -20,21 +20,14 @@
 
 enum object {
     constant,
-    varbiable,
+    variable,
 };
 
 enum data_type_enum {
-	integer
+	integer,
 	boolean,
 	string_chars,
 	single_char,
-};
-
-enum var_type {
-    integer,
-    char_single,
-    chars,
-    boolean,
 };
 
 struct tablestruct {
@@ -76,17 +69,17 @@ FILE* ftable;	  /* 输出符号表 */
 FILE* fcode;    /* 输出虚拟机代码 */
 FILE* foutput;  /* 输出出错示意（如有错） */
 FILE* fresult;  /* 输出执行结果 */
-char fname[al];
+char fname[MAX_SYM_TABLE];
 int err;
 extern int line; 
 
 void init();
 void enter(enum object k);
 int position(char *s);
-void gen(enum fct x, int y, int z);
+void gen(enum fct x, int y, char *z);
 void listall();
 void displaytable();
-void interpret();
+//void interpret();
 int base(int l, int* s, int b);
 
 #define INT_TYPE 101
@@ -118,16 +111,29 @@ int data_type = 0;
 %token BECOMES LSS LEQ GTR GEQ EQL NEQ PLUS INC MINUS DEC TIMES SLASH MOD LPAREN RPAREN LBRACK
 %token RBRACK LBPAREN RBPAREN AND OR NOT XOR COMMA PERIOD COLON SEMICOLON
 
+%right BECOMES
+%left AND OR
+%left XOR
+%left EQL NEQ
+%left GTR LSS LEQ GEQ 
+%left PLUS MINUS
+%left TIMES SLASH MOD
+%right INC DEC NOT
+
+%nonassoc UMINUS 
+%nonassoc LOWER_THAN_ELSE
+%nonassoc ELSE
+
+
+
+
 %token <ident> IDENT
 %token <number> NUMBER
 %token <string_chars> STRING
 %token <single_char> CHAR
 %token <boolean> BOOL
 
-
 %type <type_val> simple_expr factor
-
-%nonassoc UMINUS
 
 ////////////////////////////////////////////////////////
 //规则部分
@@ -141,7 +147,6 @@ program:            MAINSYM
                 ;
 
 declaration_list:	declaration_list declaration_stat
-                |   declaration_stat
                 |   
                 ;
 
@@ -170,7 +175,7 @@ ident_list:			ident_def
 ident_def:			IDENT {
 						if (const_label == 1) {	// const declaration without initialization.
 							yyerror("Const declaration requires initialization!\n");
-							return CONST_ERROR; // error code.
+							return -1; // error code.
 						}
 						else {	// var declaration part without initialation
 							declaration_init = 0;
@@ -223,7 +228,6 @@ compound_stat:		LBPAREN
 
 statement_list:		statement_list statement
 				|	statement
-				|
 				;
 
 statement:			expression_stat
@@ -235,8 +239,7 @@ statement:			expression_stat
 				;
 
 expression_stat:	expression_stat expression SEMICOLON
-				|	expression SEMICOLON
-				|
+				|	expression SEMICOLON 
 				;
 
 expression:			var BECOMES expression
@@ -252,14 +255,12 @@ select_stat:		if_stat
 				;
 
 if_stat:			IFSYM LPAREN expression RPAREN 
+					statement	%prec LOWER_THAN_ELSE
+				|	IFSYM LPAREN expression RPAREN 
 					statement
-					else_stat
+					ELSESYM
+					statement
 				;
-
-else_stat:			ELSESYM
-					statement
-				|	
-				;	
 
 switch_stat:		SWITCHSYM 
 					LPAREN expression RPAREN 
@@ -355,24 +356,24 @@ opr:				PLUS
 				;
 
 factor:				NUMBER {
-						$$.type = INT_TYPE;
+						$$ = INT_TYPE;
 						input_val_int = $1;
-						gen(lit, INT_TYPE, (char*)&input_val_int));
+						gen(lit, INT_TYPE, (char*)&input_val_int);
 					}
 				|	BOOL {
-						$$.type = BOOL_TYPE;
+						$$ = BOOL_TYPE;
 						input_val_bool = $1;
-						gen(lit, BOOL_TYPE, (char*)&input_val_bool));
+						gen(lit, BOOL_TYPE, (char*)&input_val_bool);
 					}
 				|	STRING {
-						$$.type = STRING_TYPE;
+						$$ = STRING_TYPE;
 						strcpy(input_val_string, $1);
-						gen(lit, CHAR_TYPE, (char*)&input_val_char));
+						gen(lit, CHAR_TYPE, (char*)&input_val_char);
 					}
 				|	CHAR {
-						$$.type = CHAR_TYPE;
+						$$ = CHAR_TYPE;
 						input_val_char = $1;
-						gen(lit, STRING_TYPE, (char*)&input_val_string));
+						gen(lit, STRING_TYPE, (char*)&input_val_string);
 					}
 				| 	var {
 
@@ -423,7 +424,7 @@ void enter(enum object k) {
 				memcpy((void*)&table[sym_table_tail].val, (const void*)&input_val_string, MAX_VAL_LEN);
 				break;
 			default:
-				printf("Unknown data type in constant enter part!")
+				printf("Unknown data type in constant enter part!");
 		}
 	}
 	else if (k == variable) {
@@ -433,34 +434,34 @@ void enter(enum object k) {
 					memcpy((void*)&table[sym_table_tail].val, (const void*)&input_val_int, MAX_VAL_LEN);
 					table[sym_table_tail].init_lable = 1;
 				}
-				table[sym_table_tail].addr = cur_adr++;
+				table[sym_table_tail].adr = cur_adr++;
 				break;
 			case BOOL_TYPE:
 				if (declaration_init == 1) {
 					memcpy((void*)&table[sym_table_tail].val, (const void*)&input_val_bool, MAX_VAL_LEN);
 					table[sym_table_tail].init_lable = 1;
 				}
-				table[sym_table_tail].addr = cur_adr++;
+				table[sym_table_tail].adr = cur_adr++;
 				break;
 			case CHAR_TYPE:
 				if (declaration_init == 1) {
 					memcpy((void*)&table[sym_table_tail].val, (const void*)&input_val_char, MAX_VAL_LEN);
 					table[sym_table_tail].init_lable = 1;
 				}
-				table[sym_table_tail].addr = cur_adr++;
+				table[sym_table_tail].adr = cur_adr++;
 				break;
 			case STRING_TYPE:
 				if (declaration_init == 1) {
 					memcpy((void*)&table[sym_table_tail].val, (const void*)&input_val_string, MAX_VAL_LEN);
 					table[sym_table_tail].init_lable = 1;
 				}
-				table[sym_table_tail].addr = cur_adr++;
+				table[sym_table_tail].adr = cur_adr++;
 				break;
 			default:
-				printf("Unknown data type in variable enter part!")
+				printf("Unknown data type in variable enter part!");
 		}
 	}
-	else printf("Unknown sym_table enter operation!")
+	else printf("Unknown sym_table enter operation!");
 }
 
 /* 查找标识符在符号表中的位置 */
@@ -468,7 +469,7 @@ int position(char *s) {
 	int i, res = -1;
 	for (i = 1; i <= sym_table_tail; ++i) {
 		if (strcmp(table[i].name, s) != 0) {
-			res = table[i].addr;
+			res = table[i].adr;
 			break;
 		}
 	}
@@ -483,7 +484,7 @@ void gen(enum fct x, int y, char *z) {
 	}
 	code[VM_pointer].f = x;
 	code[VM_pointer].l = y;
-	memcpy((void*)(code[vm_code_pointer].opr), (const void*)z, STRING_LEN);
+	memcpy((void*)(code[VM_pointer].val), (const void*)z, MAX_VAL_LEN);
 	VM_pointer++;
 }
 
@@ -494,7 +495,7 @@ void listall() {
 		{"lit"},{"opr"},{"lod"},{"sto"},{"cal"},{"int"},{"jmp"},{"jpc"},
 	};
 	if (listall_switch_on) {
-		for (i = 0; i < vm_code_pointer; i++) {
+		for (i = 0; i < VM_pointer; i++) {
 			if (code[i].f == lit){
 				switch (code[i].l) {
 					case INT_TYPE:
@@ -578,130 +579,9 @@ void displaytable() {
 
 }
 
-/* 解释程序 */
-void interpret() {
-	int p = 0; /* 指令指针 */
-	int b = 1; /* 指令基址 */
-	int t = 0; /* 栈顶指针 */
-	struct instruction i;	/* 存放当前指令 */
-	int s[MAX_STACK];	/* 栈 */
 
-	printf("Start pl0\n");
-	fprintf(fresult,"Start pl0\n");
-	s[0] = 0; /* s[0]不用 */
-	s[1] = 0; /* 主程序的三个联系单元均置为0 */
-	s[2] = 0;
-	s[3] = 0;
-	do {
-	    i = code[p];	/* 读当前指令 */
-		p = p + 1;
-		switch (i.f) {
-			case lit:	/* 将常量a的值取到栈顶 */
-				t = t + 1;
-				s[t] = i.a;				
-				break;
-			case opr:	/* 数学、逻辑运算 */
-				switch (i.a) {
-					case 0:  /* 函数调用结束后返回 */
-						t = b - 1;
-						p = s[t + 3];
-						b = s[t + 2];
-						break;
-					case 1: /* 栈顶元素取反 */
-						s[t] = - s[t];
-						break;
-					case 2: /* 次栈顶项加上栈顶项，退两个栈元素，相加值进栈 */
-						t = t - 1;
-						s[t] = s[t] + s[t + 1];
-						break;
-					case 3:/* 次栈顶项减去栈顶项 */
-						t = t - 1;
-						s[t] = s[t] - s[t + 1];
-						break;
-					case 4:/* 次栈顶项乘以栈顶项 */
-						t = t - 1;
-						s[t] = s[t] * s[t + 1];
-						break;
-					case 5:/* 次栈顶项除以栈顶项 */
-						t = t - 1;
-						s[t] = s[t] / s[t + 1];
-						break;
-					case 6:/* 栈顶元素的奇偶判断 */
-						s[t] = s[t] % 2;
-						break;
-					case 8:/* 次栈顶项与栈顶项是否相等 */
-						t = t - 1;
-						s[t] = (s[t] == s[t + 1]);
-						break;
-					case 9:/* 次栈顶项与栈顶项是否不等 */
-						t = t - 1;
-						s[t] = (s[t] != s[t + 1]);
-						break;
-					case 10:/* 次栈顶项是否小于栈顶项 */
-						t = t - 1;
-						s[t] = (s[t] < s[t + 1]);
-						break;
-					case 11:/* 次栈顶项是否大于等于栈顶项 */
-						t = t - 1;
-						s[t] = (s[t] >= s[t + 1]);
-						break;
-					case 12:/* 次栈顶项是否大于栈顶项 */
-						t = t - 1;
-						s[t] = (s[t] > s[t + 1]);
-						break;
-					case 13: /* 次栈顶项是否小于等于栈顶项 */
-						t = t - 1;
-						s[t] = (s[t] <= s[t + 1]);
-						break;
-					case 14:/* 栈顶值输出 */
-						printf("%d", s[t]);
-						fprintf(fresult, "%d", s[t]);
-						t = t - 1;
-						break;
-					case 15:/* 输出换行符 */
-						printf("\n");
-						fprintf(fresult,"\n");
-						break;
-					case 16:/* 读入一个输入置于栈顶 */
-						t = t + 1;
-						printf("?");
-						fprintf(fresult, "?");
-						scanf("%d", &(s[t]));
-						fprintf(fresult, "%d\n", s[t]);						
-						break;
-				}
-				break;
-			case lod:	/* 取相对当前过程的数据基地址为a的内存的值到栈顶 */
-				t = t + 1;
-				s[t] = s[base(i.l,s,b) + i.a];				
-				break;
-			case sto:	/* 栈顶的值存到相对当前过程的数据基地址为a的内存 */
-				s[base(i.l, s, b) + i.a] = s[t];
-				t = t - 1;
-				break;
-			case cal:	/* 调用子过程 */
-				s[t + 1] = base(i.l, s, b);	/* 将父过程基地址入栈，即建立静态链 */
-				s[t + 2] = b;	/* 将本过程基地址入栈，即建立动态链 */
-				s[t + 3] = p;	/* 将当前指令指针入栈，即保存返回地址 */
-				b = t + 1;	/* 改变基地址指针值为新过程的基地址 */
-				p = i.a;	/* 跳转 */
-				break;
-			case ini:	/* 在数据栈中为被调用的过程开辟a个单元的数据区 */
-				t = t + i.a;	
-				break;
-			case jmp:	/* 直接跳转 */
-				p = i.a;
-				break;
-			case jpc:	/* 条件跳转 */
-				if (s[t] == 0) 
-					p = i.a;
-				t = t - 1;
-				break;
-		}
-	} while (p != 0);
-	printf("End pl0\n");
-	fprintf(fresult,"End pl0\n");
-}
+/* 解释程序 */
+
 
 
 int main(int argc, char* argv[]) {
@@ -710,7 +590,7 @@ int main(int argc, char* argv[]) {
 		printf("Can't open the source code file!\n");
 	}
 
-	if ((fcode = fopen("fcode.in", "w+")) == NULL) {
+	if ((fcode = fopen("fcode.txt", "w+")) == NULL) {
 		printf("Can't open the fcode file!\n");
 		exit(1);
 	}	
@@ -725,9 +605,11 @@ int main(int argc, char* argv[]) {
 	
 	redirectInput(fin);		
 	init();
+	extern int yydebug;
+	yydebug = 1;
   	yyparse();
 
-	displaytable()	/* 输出符号表 */
+	displaytable();	/* 输出符号表 */
 	listall();  /* 输出所有代码 */
 	//interpret();	/* 调用解释执行程序 */        	
 	fclose(fin);

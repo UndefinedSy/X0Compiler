@@ -3,7 +3,7 @@
 #include "stdlib.h"
 #include "string.h"
 #include "malloc.h"
-#include "x0yacc.tab.h"
+#include "X0Compiler.v1.tab.h"
 
 void comment();
 int line=1;

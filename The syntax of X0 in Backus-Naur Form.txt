@@ -13,8 +13,7 @@ expression_stat = expression_stat expression ";" | expression ";" | ε.
 expression = var "=" expression | simple_expr | ε.
 var = ID.
 select_stat = if_stat | switch_stat.
-if_stat = "if" "(" expression ")" statement else_stat. 
-else_stat = "else" statement | ε.
+if_stat = "if" "(" expression ")" statement | "if" "(" expression ")" statement "else" statement. 
 switch_stat = "switch" "(" expression ")" "{" case_list default_stat "}".
 case_list = case_list case_stat | case_stat | ε.
 case_stat = "case" expression ":" statement.
