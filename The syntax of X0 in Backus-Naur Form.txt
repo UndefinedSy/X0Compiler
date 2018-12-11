@@ -12,12 +12,8 @@ statement = expression_stat | compound_stat | select_stat | iteration_stat | rea
 expression_stat = expression_stat expression ";" | expression ";" | ε. 
 expression = var "=" expression | simple_expr | ε.
 var = ID.
-select_stat = if_stat | switch_stat.
+select_stat = if_stat.
 if_stat = "if" "(" expression ")" statement | "if" "(" expression ")" statement "else" statement. 
-switch_stat = "switch" "(" expression ")" "{" case_list default_stat "}".
-case_list = case_list case_stat | case_stat | ε.
-case_stat = "case" expression ":" statement.
-default_stat = "default" ":" statement | ε.
 iteration_stat = for_stat | while_stat | do_while_stat.
 for_stat = "for" "(" expression ";" expression ";" expression ")" statement.
 while_stat = "while" "(" expression ")" statement.

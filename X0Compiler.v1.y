@@ -17,6 +17,7 @@
 #define MAX_CODE        200     /* 最多的虚拟机代码数 */
 #define MAX_STACK       500 /* 运行时数据栈元素最多为500个 */
 #define MAX_VAL_LEN		114	/*无类型数据长度*/
+#define MAX_DATA_STACK	1145	/*数据栈大小*/
 
 enum object {
     constant,
@@ -52,16 +53,23 @@ struct instruction {
     char val[MAX_VAL_LEN];
 }code[MAX_CODE];
 
+struct {
+	enum 	data_type t;				// current un-used
+	byte 	val[STRING_LEN];
+} data_stack;
+
 int sym_table_tail;	/* 符号表当前尾指针 */
 int VM_pointer;         /* 虚拟机代码指针, 取值范围[0, cxmax-1] */
 char id[MAX_AL];
 enum object cur_kind;
 char cur_id[MAX_VAL_LEN];
 int cur_table_adr;
+int cur_stack_adr;
 int cur_type;
 int do_begin_pos;
 int num;
 int cur_adr = 3;
+int stack_top;
 int input_val_int;
 bool input_val_bool;
 char input_val_char;
@@ -284,6 +292,7 @@ var:				IDENT {
 							if (strcmp(cur_id, table[i].name) == 0) {
 								exist_flag = 1;
 								cur_table_adr = i;
+								cur_stack_adr = table[i].adr;
 								$$ = table[i].type;
 								cur_kind = table[i].kind;
 								cur_type = table[i].type;
@@ -297,34 +306,32 @@ var:				IDENT {
 				;
 
 select_stat:		if_stat
-				|	switch_stat
 				;
 
-if_stat:			IFSYM LPAREN expression RPAREN 
-					statement	%prec LOWER_THAN_ELSE
-				|	IFSYM LPAREN expression RPAREN 
-					statement
-					ELSESYM
-					statement
-				;
-
-switch_stat:		SWITCHSYM 
-					LPAREN expression RPAREN 
-					LBPAREN
-					case_list
-					default_stat
-					RBPAREN
-				;
-
-case_list:			CASESYM
-					expression
-					COLON
-					statement
-				;
-
-default_stat: 		DEFAULTSYM COLON 
-					statement
-				|
+if_stat:			IFSYM LPAREN expression get_code_addr {
+						int adr_tmp = 0;
+						gen(jpc, 0, (char*)adr_tmp);
+					} 
+					RPAREN 
+					statement	%prec LOWER_THAN_ELSE {
+						int back_patch_pos = $4, back_patch_val = VM_pointer;
+						memcpy((void*)code[back_patch_pos].val, (const void*)&back_patch_val, MAX_VAL_LEN);
+					}
+				|	IFSYM LPAREN expression get_code_addr {
+						int adr_tmp = 0;
+						gen(jpc, 0, (char*)adr_tmp);
+					} 
+					RPAREN 
+					statement get_code_addr {
+						int back_patch_pos = $4, back_patch_val, true_adr_tmp = 0;
+						gen(jmp, 0, (char*)true_adr_tmp); 	// $7
+						back_patch_val = VM_pointer;
+						memcpy((void*)code[back_patch_pos].val, (const void*)&back_patch_val, MAX_VAL_LEN); // for false stat to jump in
+					}
+					ELSESYM statement {
+						int back_patch_pos = $7, back_patch_val = VM_pointer;
+						memcpy((void*)code[back_patch_pos].val, (const void*)&back_patch_val, MAX_VAL_LEN); // for ture stat to jump out
+					}
 				;
 
 iteration_stat:		for_stat
@@ -333,17 +340,22 @@ iteration_stat:		for_stat
 				;
 
 for_stat:			FORSYM LPAREN expression SEMICOLON get_code_addr 
-					expression SEMICOLON get_code_addr {
+					expression SEMICOLON get_code_addr{
 						int opr_tmp = 0;
 						gen(jpc, 0, (char*)opr_tmp); // true --- jump out $8
 						gen(jmp, 0, (char*)opr_tmp); // false --- jump to state $8+1
-					}
-					expression RPAREN get_code_addr {
+					} 
+					expression RPAREN {
 						int adr_tmp = $5;
 						gen(jmp, 0, (char*)adr_tmp); // back to condition part
 					}
+					get_code_addr
 					statement {
-
+						int adr_tmp = $8+2, adr_jpc_e2, adr_jpc_e2_pos = $8, adr_jmp_e2 = $11;
+						gen(jmp, 0, (char*)adr_tmp);
+						adr_jpc_e2 = VM_pointer;
+						memcpy((void*)code[adr_jpc_e2_pos].val, (const void*)&adr_jpc_e2, MAX_VAL_LEN);
+						memcpy((void*)code[adr_jpc_e2_pos+1].val, (const void*)&adr_jmp_e2, MAX_VAL_LEN);
 					}
 				;
 
@@ -474,7 +486,14 @@ factor:				NUMBER {
 						gen(lit, STRING_TYPE, (char*)&input_val_string);
 					}
 				| 	var {
-
+						if (cur_kind == constant) {
+							gen(lit, cur_type, table[cur_table_adr].val)
+						}
+						else {
+							// Maybe refresh the data_stack val is required.
+							gen(lod, cur_type, (char*)cur_stack_adr);
+						}
+						stack_top++; // un-known
 					}
 				;
 
@@ -679,7 +698,9 @@ void displaytable() {
 
 
 /* 解释程序 */
-
+void interpret() {
+	
+}
 
 
 int main(int argc, char* argv[]) {
