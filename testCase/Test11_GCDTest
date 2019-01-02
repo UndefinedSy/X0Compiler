@@ -1,0 +1,20 @@
+main{
+	int x, y;
+	int a, b;
+	read(x);
+	read(y);
+	if (x > y) {
+		a := x;
+		b := y;
+	}
+	else {
+		a := y;
+		b := x;
+	}
+	while (a % b != 0) {
+		y := b;
+		b := a % b;
+		a := y;
+	}
+	write(b);
+}

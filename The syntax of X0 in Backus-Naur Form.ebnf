@@ -1,0 +1,45 @@
+program = "main" "{" declaration_list statement_list "}".
+declaration_list = declaration_list declaration_stat | .
+declaration_stat = var_declaration | const_declaration | var_array_declaration | const_array_declalration.
+var_declaration = type ident_list ";".
+const_declaration = "const" type ident_list ";".
+var_array_declaration =	type ident_array_list ";".
+const_array_declaration = "const" type ident_array_def ";".
+ident_array_list = ident_array_def | ident_array_list "," ident_array_def.
+ident_list = ident_def | ident_list "," ident_def.
+ident_array_def = IDENT "[" dimension_list "]".
+dimension_list = dimension | dimension_list "]" "[" dimension.
+dimension = NUMBER.
+ident_def = IDENT |	IDENT ":=" simple_expr.
+type = "int" | "char" | "string" | "bool".
+compound_stat = "{" statement_list "}".
+statement_list = statement_list statement |	statement.
+statement = expression_stat | compound_stat | select_stat |	iteration_stat | read_stat | write_stat.
+expression_stat = expression_stat "," expression ";" | expression ";".
+expression = var ":=" expression | simple_expr | .
+var = IDENT | dimension_exp.
+dimension_exp = IDENT "[" expression "]" | dimension_exp "[" expression "]".
+select_stat = if_stat | switch_stat.
+switch_stat = "switch" "(" expression ")" "{" case_list default_stat "}".
+case_list = case_list case_stat | case_stat.
+case_stat = "case" expression ":" compound_stat.
+default_stat = "default" ":" compound_stat.
+if_stat = "if" "(" expression ")" statement | "if" "(" expression ")" statement "else" statement.
+iteration_stat = for_stat | while_stat | do_while_stat.
+for_stat = "for" "(" expression ";" expression ";" expression ")" statement.
+while_stat = "while" "(" expression ")" statement.
+do_while_stat = "do" statement "while" "(" expression ")" ";". 
+read_stat = "read" "(" read_list ")" ";".
+read_list = read_list "," read_var | read_var.
+read_var = var.
+write_stat = "write" "(" write_list ")" ";".
+write_list = write_list "," expression | expression.
+simple_expr = additive_expr | additive_expr binary_bool_opr additive_expr.
+additive_expr = additive_expr binary_add_opr multiplying_expr | multiplying_expr.
+multiplying_expr = multiplying_expr binary_mul_opr term | term.
+term = factor | unary_opr term | "-" factor | "!" factor | "odd" factor.
+factor = NUMBER | BOOL | STRING | CHAR | var |	"(" expression ")".
+binary_add_opr = "+" | "-".
+binary_mul_opr = "*" | "/" | "%".
+binary_bool_opr = "&&" | "||" |	"^" | "<" |	"<=" | ">" | ">=" | "==" | "!=".
+unary_opr = "++" | "--".

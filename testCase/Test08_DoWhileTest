@@ -1,0 +1,8 @@
+main {
+	int a, b;
+	read(a);
+    do {
+        read(b);
+        write(b + b * b);
+    } while (--a);
+}

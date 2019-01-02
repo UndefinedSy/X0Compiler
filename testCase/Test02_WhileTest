@@ -1,0 +1,16 @@
+main {
+	int a, b, c;
+	read(a);
+	while (--a) {
+		write("current a is:");
+		write(a);
+		read(b);
+		write(a+b);
+		while (--b) {
+			write("current b is:");
+			write(b);
+			read(c);
+			write(c - b);
+		}
+	}
+}

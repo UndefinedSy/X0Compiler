@@ -1,0 +1,25 @@
+main{
+   bool a;
+   bool b;
+   int x;
+   int y;
+   a := true;
+   b := false;
+   write(a && b);
+   write(a || b);
+   write(!a);
+   write(true || (!a) && (!b));
+   read(x);
+   read(y);
+   a := x > y;
+   if(a) {
+      write(x);
+      b := false;
+   }
+   else {
+      write(y);
+      b := true;
+   }
+   write(b);
+}
+/* 与或非运算符可以根据自己定义的实际情况调整 */
